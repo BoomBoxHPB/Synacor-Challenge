@@ -1,5 +1,7 @@
 import sys
+
 pc = 0
+kbd_input = ""
 
 def main():
     global pc
@@ -141,10 +143,19 @@ def main():
         return
 
     def out_op():
-        print(chr(read_next_word()), end='')
+        print(chr(read_reg_or_value(read_next_word())), end='')
         return
 
     def in_op():
+        # print("need to read now")
+        global kbd_input
+        if kbd_input == "":
+            kbd_input = input() + '\n'
+        ch = ord(kbd_input[0])
+        kbd_input = kbd_input[1:]
+        # print(kbd_input)
+        write_loc = read_next_word()
+        write_to_loc(write_loc, ch)
         return
 
     def noop_op():
