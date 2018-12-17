@@ -1,7 +1,12 @@
 import sys
+pc = 0
 
 def main():
+    global pc
     regs = [0 for x in range(8)]
+    stack = []
+    memory = [0 for x in range(32678)]
+    pc = 0
     f = open(sys.argv[1], "rb")
 
     def halt_op():
@@ -9,88 +14,130 @@ def main():
         return
 
     def set_op():
-        reg = read_next_word() - 32768
-        regs[reg] = read_reg_or_value(read_next_word())
+        loc = read_next_word()
+        write_to_loc(loc, read_reg_or_value(read_next_word()))
         return
 
     def push_op():
+        val = read_reg_or_value(read_next_word())
+        # print(stack)
+        stack.append(val)
         return
 
     def pop_op():
+        val = stack.pop()
+        loc = read_next_word()
+        # print(val)
+        # print(stack)
+        write_to_loc(loc, val)
         return
 
     def eq_op():
-        reg = read_next_word() - 32768
+        loc = read_next_word()
         val_b = read_reg_or_value(read_next_word())
         val_c = read_reg_or_value(read_next_word())
+        # print("eq", val_b, val_c)
         if val_b == val_c:
-            regs[reg] = 1
+            write_to_loc(loc, 1)
         else:
-            regs[reg] = 0
+            write_to_loc(loc, 0)
         return
 
     def gt_op():
-        reg = read_next_word() - 32768
+        loc = read_next_word()
         val_b = read_reg_or_value(read_next_word())
         val_c = read_reg_or_value(read_next_word())
         if val_b > val_c:
-            regs[reg] = 1
+            write_to_loc(loc, 1)
         else:
-            regs[reg] = 0
+            write_to_loc(loc, 0)
         return
 
     def jmp_op():
-        loc = read_next_word()
-        # need to account for registers
-        f.seek(loc * 2)
+        loc = read_reg_or_value(read_next_word())
+        set_pc(loc)
         return
 
     def jt_op():
         compare = read_reg_or_value(read_next_word())
         loc = read_reg_or_value(read_next_word())
         if compare != 0:
-            f.seek(loc * 2)
+            set_pc(loc)
         return
 
     def jf_op():
         compare = read_reg_or_value(read_next_word())
         loc = read_reg_or_value(read_next_word())
         if compare == 0:
-            f.seek(loc * 2)
+            set_pc(loc)
         return
 
     def add_op():
-        reg = read_next_word() - 32768
+        loc = read_next_word()
         val_b = read_reg_or_value(read_next_word())
         val_c = read_reg_or_value(read_next_word())
-        regs[reg] = (val_b + val_c) % 32768
+        write_to_loc(loc, (val_b + val_c) % 32768)
         return
 
     def mult_op():
+        loc = read_next_word()
+        val_b = read_reg_or_value(read_next_word())
+        val_c = read_reg_or_value(read_next_word())
+        write_to_loc(loc, (val_b * val_c) % 32768)
         return
 
     def mod_op():
+        loc = read_next_word()
+        val_b = read_reg_or_value(read_next_word())
+        val_c = read_reg_or_value(read_next_word())
+        write_to_loc(loc, val_b % val_c)
         return
 
     def and_op():
+        loc = read_next_word()
+        val_b = read_reg_or_value(read_next_word())
+        val_c = read_reg_or_value(read_next_word())
+        write_to_loc(loc, val_b & val_c)
         return
 
     def or_op():
+        loc = read_next_word()
+        val_b = read_reg_or_value(read_next_word())
+        val_c = read_reg_or_value(read_next_word())
+        write_to_loc(loc, val_b | val_c)
         return
 
     def not_op():
+        loc = read_next_word()
+        val_b = read_reg_or_value(read_next_word())
+        write_to_loc(loc, val_b ^ 32767)
         return
 
     def rmem_op():
+        write_loc = read_next_word()
+        read_loc = read_reg_or_value(read_next_word())
+        # print("rmem", write_loc, read_loc)
+        write_to_loc(write_loc, memory[read_loc])
         return
 
     def wmem_op():
+        write_loc = read_reg_or_value(read_next_word())
+        read_val = read_reg_or_value(read_next_word())
+        # print("wmem", write_loc, read_val)
+        memory[write_loc] = read_val
         return
 
     def call_op():
+        addr = read_reg_or_value(read_next_word())
+        stack.append(pc)
+        # print(stack)
+        set_pc(addr)
         return
 
     def ret_op():
+        addr = stack.pop()
+        # print(stack)
+        set_pc(addr)
         return
 
     def out_op():
@@ -105,13 +152,31 @@ def main():
         return
 
     def read_next_word():
-        return int.from_bytes(f.read(2), byteorder='little')
+        word = memory[pc]
+        set_pc(pc + 1)
+        return word
 
     def read_reg_or_value(word):
         if word >= 32768 and word < 32776:
             return regs[word-32768]
         else:
             return word
+
+    def write_to_loc(loc, val):
+        if loc >= 32776:
+            print("Error, invalid location")
+            quit()
+        elif loc >= 32768:
+            regs[loc-32768] = val
+        # memory has its own write mechanism
+        else:
+            print("Error, invalid location (in memory)")
+            # memory[loc] = val
+        return
+
+    def set_pc(new_pc):
+        global pc
+        pc = new_pc
 
     ops = [
         halt_op,
@@ -138,9 +203,22 @@ def main():
         noop_op
     ]
 
+
+    pc = 0
+    while pc < 32678:
+        word = f.read(2)
+        # print(word)
+        if word == b'':
+            break
+        # print(pc, int.from_bytes(word, byteorder='little'))
+        memory[pc] = int.from_bytes(word, byteorder='little')
+        pc += 1
+    pc = 0
+    f.close()
+
     while True:
         word = read_next_word()
-        print(word)
+        # print(word)
         ops[word]()
     # word = f.read(2)
     # print(word)
