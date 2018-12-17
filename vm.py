@@ -6,10 +6,15 @@ kbd_input = ""
 def main():
     global pc
     regs = [0 for x in range(8)]
+
+    #testing teleporter
+    # regs[7] = 200
+
     stack = []
     memory = [0 for x in range(32678)]
     pc = 0
-    f = open(sys.argv[1], "rb")
+    print("Enter file name:")
+    f = open(input(), "rb")
 
     def halt_op():
         quit()
@@ -132,7 +137,7 @@ def main():
     def call_op():
         addr = read_reg_or_value(read_next_word())
         stack.append(pc)
-        # print(stack)
+        # print("call", addr)
         set_pc(addr)
         return
 
@@ -168,7 +173,12 @@ def main():
         return word
 
     def read_reg_or_value(word):
+        if word == 32775:
+            # Reg 7
+            return regs[word-32768]
         if word >= 32768 and word < 32776:
+            # if word-32768 == 7:
+            #     print("read reg 7 (aka teleporter)")
             return regs[word-32768]
         else:
             return word
