@@ -16,20 +16,35 @@ def f6035():
     else:
         regs[0] = ( regs[0] + 32767 ) % 32768
         regs[1] = regs[7]
-        f6027()
+        #f6027()
+        if regs[0] != 0:
+            return f6035()
+        else:
+            regs[0] = ( regs[1] + 1 ) % 32768
+
     return
 
 def f6048():
     stack.append(regs[0])
     regs[1] = ( regs[1] + 32767 ) % 32768
-    f6027()
+    # f6027()
+    if regs[0] != 0:
+        return f6035()
+    else:
+        regs[0] = ( regs[1] + 1 ) % 32768
+
     regs[1] = regs[0]
     regs[0] = stack.pop()
     regs[0] = ( regs[0] + 32767 ) % 32768
-    return f6027()
+    # return f6027()
+    if regs[0] != 0:
+        return f6035()
+    else:
+        regs[0] = ( regs[1] + 1 ) % 32768
+    
 
 def main():
-    # sys.setrecursionlimit(5000)
+    sys.setrecursionlimit(5000)
     for x in range(1, 32768):
         #run verification for all possible inputs, stop once the out is 6
         regs[0] = 4
@@ -41,8 +56,9 @@ def main():
         regs[6] = 0
         regs[7] = x
         f6027()
+        # print(x, regs[0])
         if regs[0] == 6:
             print(x)
-            return
+            # return
 
 main()
